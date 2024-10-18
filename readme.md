@@ -15,19 +15,15 @@ supporting some extra utility functions under python.
 
 
 ## Prerequisite
-1. python3.8+
+1. python3.8+  
 2. toolz
 
-## Install
+## Install 
+
+### func-util is on the Python Package Index (PyPI):
 ```bash
 
-git clone + <git address>
-
-# install under the root path
-pip install . 
-
-# install dependency
-pip install -r requirements.txt
+pip install func-util
 
 ```
 
