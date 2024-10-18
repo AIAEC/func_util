@@ -1,0 +1,37 @@
+[build-system]
+requires = [
+    "setuptools >= 66.1.0",
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "func_util"
+description = "some extra utility functions under python"
+requires-python = ">=3.8, <4"
+dynamic = ["dependencies"]
+version = "1.0.0"
+keywords = ["util"]
+authors = [
+    {name = "AIACE"}
+]
+classifiers = [
+    "Development Status :: 1 - Alpha",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Build Tools",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3 :: Only"
+]
+
+[project.urls]
+Homepage = "https://git.aiacesz.com/aiacee/pycore-util"
+
+[tool.setuptools.dynamic]
+dependencies = {file = ["requirements.txt"]}
+
+
