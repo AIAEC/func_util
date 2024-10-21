@@ -11,8 +11,9 @@ from func_util.func_util import (
     indices,
     lflatten,
     map_by,
-    mode,
+    mode, lconcat, separate, group, lfilter, lmap, min_max, groupby, sign, argmin, argmax,
 )
+from func_util.ordered_set import OrderedSet
 
 
 class FuncUtilTest(TestCase):
@@ -83,7 +84,7 @@ class FuncUtilTest(TestCase):
 
         nums = [-1, -1, 0, 0, 0, 0, 5, 5, 6, 7, 3, 99, -101, 0, 0, -1, 6]
         result = fuse_if_possible(fuse_func=fuse_func2, items=nums, allow_none_as_fusion_output=True)
-        self.assertListEqual(result,[None, 7, 3, 99, -101, -1])
+        self.assertListEqual(result, [None, 7, 3, 99, -101, -1])
 
     def test_be_type(self):
         type_predicator = be_type(float)
@@ -145,3 +146,114 @@ class FuncUtilTest(TestCase):
 
         _indices = indices([0, 1, 0, 2, 0, 3])
         self.assertListEqual([1, 3, 5], _indices)
+
+    def test_separate(self):
+        def bigger_than_zero(x):
+            return x > 0
+
+        nums_list = [0, 2, 3, 5, -1]
+        big, small = separate(bigger_than_zero, nums_list)
+        self.assertListEqual([2, 3, 5], big)
+        self.assertListEqual([0, - 1], small)
+
+    def test_group(self):
+        def abs_difference_less_then_2(num1, num2):
+            return abs(num1 - num2) < 2
+
+        nums_list = [1, 2, 3, 5, 7, 4]
+        groups1 = group(abs_difference_less_then_2, nums_list)
+        self.assertListEqual([[4, 5, 3, 2, 1], [7]], groups1)
+
+        def difference_bigger_then_0(num1, num2):
+            return num1 - num2 > 0
+
+        groups2 = group(difference_bigger_then_0, nums_list, commutative="and")
+        self.assertListEqual([[4], [7], [5], [3], [2], [1]], groups2)
+
+        def is_intersections(set1, set2):
+            return not set1.isdisjoint(set2)
+
+        set_list = [{1, 3}, {1, 4}, {1, 5}, {2, 3}]
+        groups3 = group(is_intersections, set_list, strict_mode=True)
+        self.assertListEqual([[{1, 3}, {1, 4}, {1, 5}], [{2, 3}]], groups3)
+
+    def test_lfilter(self):
+        def bigger_than_0(x):
+            return x > 0
+
+        nums = [-1, 3, -5, 7]
+
+        res = lfilter(bigger_than_0, nums)
+        self.assertEqual([3, 7], res)
+
+    def test_lmap(self):
+        f = lambda x: x * x
+        nums = [-1, 3, -5, 7]
+        res = lmap(f, nums)
+        self.assertEqual([1, 9, 25, 49], res)
+
+    def test_lconcat(self):
+        set1 = OrderedSet(range(3))
+        set2 = OrderedSet(range(3, 6))
+        set3 = OrderedSet(range(5, 8))
+        set_list = [set1, set2, set3]
+        res = lconcat(set_list)
+        self.assertListEqual([0, 1, 2, 3, 4, 5, 5, 6, 7], res)
+
+    def test_min_max(self):
+        str_list = ["abandon is the first word", "vocabulary"]
+        compare_by_key = min_max(str_list, key=len)
+        self.assertListEqual(["vocabulary", "abandon is the first word"], compare_by_key)
+
+        class Student:
+            def __init__(self, name, age):
+                self.name = name
+                self.age = age
+
+            def __eq__(self, other):
+                if isinstance(other, Student):
+                    return self.name == other.name and self.age == other.age
+                return False
+
+        student_list = [Student(name="Bob", age=25), Student(name="Tom", age=20)]
+        copied_min_max = min_max(student_list, key=lambda s: s.age, copied=True)
+        copied_min = copied_min_max[0]
+        copied_max = copied_min_max[1]
+        self.assertTrue(student_list[1] == copied_min)
+        self.assertTrue(student_list[0] == copied_max)
+        self.assertFalse(student_list[1] is copied_min)
+        self.assertFalse(student_list[0] is copied_max)
+
+    def test_groupby(self):
+        words_list = ["group", "words", "with", "same", "length"]
+        groups_dict = groupby(key=len, seq=words_list)
+        groups_dict[4].sort()
+        groups_dict[5].sort()
+        self.assertEqual(["same", "with"], groups_dict[4])
+        self.assertEqual(["group", "words"], groups_dict[5])
+        self.assertEqual(["length"], groups_dict[6])
+
+    def test_sign(self):
+        res1 = sign(1 > 0)
+        self.assertEqual(1, res1)
+        res2 = sign(1 > 0, reverse=True)
+        self.assertEqual(-1, res2)
+        res3 = sign(1 > 10)
+        self.assertEqual(-1, res3)
+        res4 = sign(1 > 10, reverse=True)
+        self.assertEqual(1, res4)
+
+    def test_argmin(self):
+        words = ["hello", "abandon"]
+        min_index_of_words_length = argmin(key=len, seq=words)
+        self.assertEqual(0, min_index_of_words_length)
+        min_index_of_words = argmin(seq=words)
+        self.assertEqual(1, min_index_of_words)
+
+    def test_argmax(self):
+        nums = [1, 2, -3, 4, -5]
+
+        max_index_by_key = argmax(key=lambda x: x * x, seq=nums)
+        self.assertEqual(4, max_index_by_key)
+        max_index_of_num = argmax(seq=nums)
+        self.assertEqual(3, max_index_of_num)

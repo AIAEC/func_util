@@ -3,12 +3,18 @@ supporting some extra utility functions under python.
 """
 
 from functools import partial
-from itertools import filterfalse
-from typing import Any, Callable, Iterable, Sequence
+from itertools import filterfalse, chain
 
 from toolz import concat
 
+from func_util.ordered_set import OrderedSet
 from func_util.predicate import is_namedtuple, is_sequence
+
+from collections import defaultdict
+from copy import deepcopy
+from numbers import Number
+from operator import attrgetter
+from typing import Any, Callable, Dict, Iterable, List, Literal, Optional, Sequence, Tuple, Union
 
 
 class FuseError(Exception):
@@ -197,3 +203,217 @@ def indices(
         map_func = lambda idx, val: (idx, val)
 
     return [map_func(i, val) for i, val in enumerate(iter) if predicate(val)]
+
+
+def separate(func: Callable[[Any], bool], items: Iterable[Any]) -> Tuple[List[Any], List[Any]]:
+    """
+    separate items into two list using given func, with all items of first list returning True, and all items of second
+    list returning False
+
+    :param func: callable
+    :param items: iterable of items
+    :return: (List[Any], List[Any])
+    """
+    positive_items, negative_items = [], []
+    for item in items:
+        if func(item):
+            positive_items.append(item)
+        else:
+            negative_items.append(item)
+    return positive_items, negative_items
+
+
+def group(
+        grouping_func: Callable[[Any, Any], bool],
+        items: List[Any], strict_mode: bool = False,
+        commutative: Literal['and', 'or', 'none'] = 'or'
+) -> List[List[Any]]:
+    """
+    clusters items that satisfies the condition into the same group and returns all groups
+
+    :param grouping_func: input item0, item1, return bool.   if item0 and item1 in same group, return True, else return False
+    :param items: list, set, tuple and other iterable container
+    :param strict_mode: if strict_mode is true, any a pair of items in same group should satisfy the condition.
+                        if strict_mode is false, any item in a group need at least one another item to satisfy the condition.
+
+    :param commutative: grouping_func(A,B) and/or grouping_func(B,A) as the condition of group条件,
+                        if it is none, grouping_func(A,B) as the condition
+
+    :return: [[items of group0], [items of group1], ...]   return a list of groups, any group is a list of items
+    notice: if item can not find another item to satisfy the condition, use a group to store it separately.
+    """
+
+    def can_group(A, B):
+        if commutative == 'and':
+            return grouping_func(A, B) and grouping_func(B, A)
+        elif commutative == 'or':
+            return grouping_func(A, B) or grouping_func(B, A)
+        else:
+            return grouping_func(A, B)
+
+    def group_helper(items: List[Any]) -> List[List[Any]]:
+        result: List[List[Any]] = []
+
+        ungrouped_indices: OrderedSet = OrderedSet(range(len(items)))
+        while len(ungrouped_indices) > 0:
+            cur_idx = ungrouped_indices.pop()
+            cur_group: List[Any] = []
+            group_candidate = OrderedSet([cur_idx])
+
+            while len(group_candidate) > 0:
+                cand_idx = group_candidate.pop()
+                cur_group.append(items[cand_idx])
+
+                idx_nearby_cands: OrderedSet = OrderedSet()
+                for ungrouped_idx in ungrouped_indices:
+                    if can_group(items[ungrouped_idx], items[cand_idx]):
+                        idx_nearby_cands.add(ungrouped_idx)
+
+                ungrouped_indices.difference_update(idx_nearby_cands)  # type: ignore
+                group_candidate.update(idx_nearby_cands)  # type: ignore
+
+            result.append(cur_group)
+        return result
+
+    def strict_group_helper(items: List[Any]) -> List[List[Any]]:
+        result: List[List[Any]] = []
+        for item in items:
+            for cur_group in result:
+                if all(can_group(item, cur_item) for cur_item in cur_group):
+                    cur_group.append(item)
+                    break
+            else:  # non cur_group satisfy if check
+                result.append([item])
+        return result
+
+    return strict_group_helper(items) if strict_mode else group_helper(items)
+
+
+def lfilter(func: Callable, iter: Iterable) -> List[Any]:
+    """
+    shortcut for list(filter(func, iter))
+
+    :param func: callable object
+    :param iter:
+
+    :return: list of filter(func, iter)
+    """
+    return list(filter(func, iter))
+
+
+def lmap(func: Callable, *iter: Iterable) -> List[Any]:
+    """
+    shortcut for list(map(func, iter))
+
+    :param func: callable object
+    :param iter:
+
+    :return: list of map(func, iter)
+    """
+    return list(map(func, *iter))
+
+
+def lconcat(iter: Iterable) -> List[Any]:
+    """
+    shortcut for list(chain.from_iterable(iter))
+
+    :param iter: iterable
+
+    :return: list of flatten objects
+    """
+    return list(chain.from_iterable(iter))
+
+
+def min_max(iter: Iterable, key: Callable[[Any], Union[int, float, tuple]] = None, copied: bool = True):
+    """
+    return  min and max in the items
+
+    :param iter: iterable container
+    :param key: None or lambda,  if it is None, use itself as value to compare, else use the returning of key as value to compare
+    :param copied: if True, deep copy a backup as result , else return themselves as result
+
+    :return: tuple of 2 items, (min_item, max_item)
+    """
+    key = key or (lambda v: v)
+    min_v, max_v = float("inf"), float("-inf")
+    min_item, max_item = None, None
+    for item in iter:
+        item_v = key(item)
+        if item_v < min_v:
+            min_item = item
+            min_v = item_v
+
+        if item_v > max_v:
+            max_item = item
+            max_v = item_v
+
+    if copied:
+        min_item = deepcopy(min_item)
+        max_item = deepcopy(max_item)
+
+    return [min_item, max_item]
+
+
+def groupby(key: Callable[[object], object], seq: Sequence[object]) -> Dict[object, List[object]]:
+    """
+    group the item of the given sequence by return of key function
+
+    :param key: callable, given single object, returns hashable object
+    :param seq: sequence of objects
+
+    :return: Dict[object, List[object]], with key being the mapped value, value to be the list of objects
+    """
+    if not callable(key):
+        key = attrgetter(key)
+    d = defaultdict(lambda: [].append)
+    for item in seq:
+        d[key(item)](item)
+    rv = {}
+    for k, v in d.items():
+        rv[k] = v.__self__
+    return rv
+
+
+def sign(expr: Any, reverse: bool = False) -> int:
+    """
+    shortcut for (expr ? 1 : -1)
+
+    :param expr: expression
+    :param reverse: whether do (expr ? -1: 1) instead
+    :return: 1 or -1
+    """
+    return 1 if expr ^ reverse else -1
+
+
+def argmin(seq: Sequence, key: Optional[Callable[[Any], Number]] = None) -> Optional[int]:
+    """
+    return the index of min
+    :param seq:
+    :param key:
+    :return:
+    """
+    if not seq:
+        return None
+
+    default_key = lambda x: x
+    key = key or default_key
+    min_idx = None
+    min_val = None
+
+    for i, item in enumerate(seq):
+        val = key(item)
+        if min_val is None or val < min_val:
+            min_val = val
+            min_idx = i
+
+    return min_idx
+
+
+def argmax(seq: Sequence, key: Optional[Callable[[Any], Number]] = None) -> Optional[int]:
+    """
+    return the index of max
+    :param seq:
+    :param key:
+    :return:
+    """
+    return argmin(seq, lambda x: -key(x) if key else -x)
