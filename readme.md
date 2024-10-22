@@ -1,5 +1,15 @@
 # func_util
-supporting some extra utility functions under python. 
+is another functional programming toolkit in python to make your life easier. 
+It's strongly inspired by packages like
+[toolz](https://github.com/pytoolz/toolz), [pyfunctional](https://github.com/EntilZha/PyFunctional).
+Instead of rewriting the same functionality in different API style, we glean the small glittering trinket(also battle field tested) into
+this package every now and then from our daily work in algorithm of [intelligent basement designing system](https://www.basementplayer.com), 
+which is fairly compatible with other functional packages.
+
+You might want to have a look at this package if you're:
+* heavy FP programmer, who occasionally build your own FP libraries
+* fan of toolz, pyfunctional or lodash(js)
+* tired of importing gigantic numpy or scipy for only small fraction of usage, like argmin, argmax
 
 # Example
 
@@ -64,6 +74,9 @@ It works most likely to clustering from machine learning, except it takes a list
 >>> total = income + extra * sign(working_hours >= 8)
 8
 ```
+
+### OrderedSet
+Missing from native collection package, we make OrderedSet based on OrderedDict and give it a `set` alike api.
 
 ## Prerequisite
 1. python3.8+  
