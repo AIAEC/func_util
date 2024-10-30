@@ -354,7 +354,7 @@ def min_max(iter: Iterable, key: Callable[[Any], Union[int, float, tuple]] = Non
     return [min_item, max_item]
 
 
-def groupby(key: Callable[[object], object], seq: Sequence[object]) -> Dict[object, List[object]]:
+def group_by(key: Callable[[object], object], seq: Sequence[object]) -> Dict[object, List[object]]:
     """
     group the item of the given sequence by return of key function
 

@@ -11,7 +11,7 @@ from func_util.func_util import (
     indices,
     lflatten,
     map_by,
-    mode, lconcat, separate, group, lfilter, lmap, min_max, groupby, sign, argmin, argmax,
+    mode, lconcat, separate, group, lfilter, lmap, min_max, group_by, sign, argmin, argmax,
 )
 from func_util.ordered_set import OrderedSet
 
@@ -224,9 +224,9 @@ class FuncUtilTest(TestCase):
         self.assertFalse(student_list[1] is copied_min)
         self.assertFalse(student_list[0] is copied_max)
 
-    def test_groupby(self):
+    def test_group_by(self):
         words_list = ["group", "words", "with", "same", "length"]
-        groups_dict = groupby(key=len, seq=words_list)
+        groups_dict = group_by(key=len, seq=words_list)
         groups_dict[4].sort()
         groups_dict[5].sort()
         self.assertEqual(["same", "with"], groups_dict[4])

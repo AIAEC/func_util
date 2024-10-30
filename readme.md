@@ -60,11 +60,39 @@ It works most likely to clustering from machine learning, except it takes a list
 >>> integers = list(filter(be_type(int), items))
 ```
 
-### separate
+### separate:   separate items into two opposite lists according to func
+```bash
+>>> nums = [1, 2, 3, 4, 5, 6]
+>>> even, odd = separate(func=lambda x: x % 2 == 0, items=nums)
+even: [2, 4, 6]    odd: [1, 3, 5]
+```
 
-### min_max
+### min_max:    return min_item and max_item from items, and key_fun maps item to numeric for comparing
+```bash
 
-### group_by
+#pseudo-code
+
+cycle = Cycle(radius=5)
+rectangle = Rectangle(width=2, height=5)
+square = Square(side_length=2)
+key_func: a function calculate the area of shape 
+min, max = min_max(iter=[cycle, rectangle, square], key=key_func)
+# min: square         max: cycle
+```
+
+
+### group_by:   group items by key which is a mapping function that maps object to a hashable object.   returning is a dict, key is mapping object, value is items.
+
+```bash
+
+#pseudo-code
+
+items = [cycle, rectangle, bus, subway]
+key_fun: a function maps item to the string for the classifacation
+res = group_by(key=key_fun, seq=items)
+
+# res:   {"shape": [cycle, rectangle],  "transportation": [bus, subway]}
+```
 
 ### sign:  arithmetic tool for boolean
 ```bash
